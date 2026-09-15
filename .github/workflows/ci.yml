@@ -1,0 +1,95 @@
+name: FitPulse Continuous Integration
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  backend-ci:
+    name: Backend Lint & Test Suite
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: gym_user
+          POSTGRES_PASSWORD: secure_production_password
+          POSTGRES_DB: gym_tracker
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout Code Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20 Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install Backend Dependencies
+        cwd: backend
+        run: npm ci
+
+      - name: Execute Prisma Migrations & Client Generation
+        cwd: backend
+        env:
+          DATABASE_URL: "postgresql://gym_user:secure_production_password@localhost:5432/gym_tracker?schema=public"
+        run: |
+          npx prisma migrate deploy
+          npx prisma generate
+
+      - name: Run Backend ESLint
+        cwd: backend
+        run: npm run lint
+
+      - name: Run Backend Integration Tests
+        cwd: backend
+        env:
+          PORT: 5001
+          NODE_ENV: test
+          DATABASE_URL: "postgresql://gym_user:secure_production_password@localhost:5432/gym_tracker?schema=public"
+          JWT_SECRET: "test-jwt-secret-key-1234567890-super-secret"
+          CORS_ORIGIN: "http://localhost:5173"
+        run: npm test
+
+  frontend-ci:
+    name: Frontend Lint, Test & Production Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20 Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Frontend Dependencies
+        cwd: frontend
+        run: npm ci
+
+      - name: Run Frontend ESLint
+        cwd: frontend
+        run: npm run lint
+
+      - name: Run Frontend Unit Tests
+        cwd: frontend
+        run: npm test
+
+      - name: Run Frontend Production Build Check
+        cwd: frontend
+        run: npm run build

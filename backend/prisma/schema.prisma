@@ -1,0 +1,170 @@
+// Prisma Schema for Gym Progress Tracker
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum WorkoutStatus {
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum ExperienceLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum UnitSystem {
+  KG
+  LBS
+}
+
+enum Theme {
+  DARK
+  LIGHT
+  SYSTEM
+}
+
+enum ExerciseCategory {
+  CHEST
+  BACK
+  LEGS
+  SHOULDERS
+  ARMS
+  CORE
+  CARDIO
+  FULL_BODY
+}
+
+enum EquipmentType {
+  BARBELL
+  DUMBBELL
+  CABLE
+  MACHINE
+  BODYWEIGHT
+  BAND
+  OTHER
+}
+
+model User {
+  id                 String            @id @default(uuid())
+  email              String            @unique
+  name               String
+  password           String
+  role               Role              @default(USER)
+  goalWeight         Float?
+  height             Float?
+  experience         ExperienceLevel?  @default(INTERMEDIATE)
+  units              UnitSystem?       @default(KG)
+  timezone           String?           @default("UTC")
+  avatarUrl          String?
+  theme              Theme?            @default(DARK)
+  restTimerSound     Boolean?          @default(true)
+  autoStartRestTimer Boolean?          @default(false)
+  workouts           Workout[]
+  exercises          ExerciseLibrary[]
+  bodyWeights        BodyWeight[]
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  @@map("users")
+}
+
+model BodyWeight {
+  id        String   @id @default(uuid())
+  weight    Float
+  date      DateTime @default(now())
+  notes     String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, date])
+  @@map("body_weights")
+}
+
+model ExerciseLibrary {
+  id        String           @id @default(uuid())
+  name      String
+  category  ExerciseCategory
+  equipment EquipmentType?
+  notes     String?
+  isDeleted Boolean          @default(false)
+  deletedAt DateTime?
+  userId    String?
+  user      User?            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  @@index([name])
+  @@index([category])
+  @@index([isDeleted])
+  @@map("exercise_library")
+}
+
+model Workout {
+  id        String        @id @default(uuid())
+  title     String
+  notes     String?
+  date      DateTime      @default(now())
+  status    WorkoutStatus @default(COMPLETED)
+  startTime DateTime?
+  endTime   DateTime?
+  duration  Int?          // Duration in seconds
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exercises Exercise[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([title])
+  @@index([userId, status, date])
+  @@index([userId, date])
+  @@map("workouts")
+}
+
+model Exercise {
+  id        String        @id @default(uuid())
+  name      String
+  order     Int           @default(0)
+  workoutId String
+  workout   Workout       @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  sets      ExerciseSet[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@index([workoutId])
+  @@index([name])
+  @@map("exercises")
+}
+
+model ExerciseSet {
+  id          String   @id @default(uuid())
+  setNumber   Int
+  weight      Float    @default(0)
+  reps        Int      @default(0)
+  notes       String?  // Optional set-specific notes (e.g. drop set, PR, warmup)
+  isCompleted Boolean  @default(false)
+  exerciseId  String
+  exercise    Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([exerciseId])
+  @@index([notes])
+  @@map("exercise_sets")
+}
