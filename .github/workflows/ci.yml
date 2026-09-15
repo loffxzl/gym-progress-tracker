@@ -38,11 +38,11 @@ jobs:
           cache-dependency-path: backend/package-lock.json
 
       - name: Install Backend Dependencies
-        cwd: backend
+        working-directory: backend
         run: npm ci
 
       - name: Execute Prisma Migrations & Client Generation
-        cwd: backend
+        working-directory: backend
         env:
           DATABASE_URL: "postgresql://gym_user:secure_production_password@localhost:5432/gym_tracker?schema=public"
         run: |
@@ -50,11 +50,11 @@ jobs:
           npx prisma generate
 
       - name: Run Backend ESLint
-        cwd: backend
+        working-directory: backend
         run: npm run lint
 
       - name: Run Backend Integration Tests
-        cwd: backend
+        working-directory: backend
         env:
           PORT: 5001
           NODE_ENV: test
@@ -79,17 +79,17 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install Frontend Dependencies
-        cwd: frontend
+        working-directory: frontend
         run: npm ci
 
       - name: Run Frontend ESLint
-        cwd: frontend
+        working-directory: frontend
         run: npm run lint
 
       - name: Run Frontend Unit Tests
-        cwd: frontend
+        working-directory: frontend
         run: npm test
 
       - name: Run Frontend Production Build Check
-        cwd: frontend
+        working-directory: frontend
         run: npm run build

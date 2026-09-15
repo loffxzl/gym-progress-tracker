@@ -19,6 +19,9 @@ import { sanitizeInput } from './middlewares/sanitize.js';
 
 const app = express();
 
+// Trust reverse proxy (Railway / Vercel edge proxy)
+app.set('trust proxy', 1);
+
 // Security HTTP headers
 app.use(helmet());
 
