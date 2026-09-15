@@ -3,6 +3,8 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+RUN apk add --no-cache openssl
+
 COPY package*.json ./
 COPY prisma ./prisma/
 
@@ -18,14 +20,16 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
+RUN apk add --no-cache openssl
+
 RUN addgroup -g 1001 -S nodejs
 RUN adduser -S express -u 1001
 
-COPY --from=builder /app/package*.json ./
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/src ./src
-COPY --from=builder /app/docker-entrypoint.sh ./docker-entrypoint.sh
+COPY --chown=express:nodejs --from=builder /app/package*.json ./
+COPY --chown=express:nodejs --from=builder /app/node_modules ./node_modules
+COPY --chown=express:nodejs --from=builder /app/prisma ./prisma
+COPY --chown=express:nodejs --from=builder /app/src ./src
+COPY --chown=express:nodejs --from=builder /app/docker-entrypoint.sh ./docker-entrypoint.sh
 
 RUN chmod +x ./docker-entrypoint.sh
 
